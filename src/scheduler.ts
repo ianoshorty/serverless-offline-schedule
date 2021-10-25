@@ -15,7 +15,7 @@ type SchedulerConfig = {
 type FunctionConfiguration = {
   input: object;
   functionName: string;
-  cron: string;
+  cron: string[];
 };
 
 class OfflineScheduler {
@@ -40,13 +40,15 @@ class OfflineScheduler {
       const { functionName, cron, input } = functionConfiguration;
       this.log(`Scheduling [${functionName}] cron: [${cron}] input: ${JSON.stringify(input)}`);
 
-      schedule.scheduleJob(cron, () => {
-        try {
-          slsInvokeFunction(functionName, input);
-          this.log(`Succesfully invoked scheduled function: [${functionName}]`);
-        } catch (err) {
-          this.log(`Failed to execute scheduled function: [${functionName}] Error: ${err}`);
-        }
+      cron.forEach(c => {
+        schedule.scheduleJob(c, () => {
+          try {
+            slsInvokeFunction(functionName, input);
+            this.log(`Succesfully invoked scheduled function: [${functionName}]`);
+          } catch (err) {
+            this.log(`Failed to execute scheduled function: [${functionName}] Error: ${err}`);
+          }
+        });
       });
     });
   };
@@ -60,9 +62,13 @@ class OfflineScheduler {
       const scheduleEvents = events.filter(event => event.hasOwnProperty('schedule'));
 
       return scheduleEvents.map(event => {
+        let rate: string | string[] = event['schedule'].rate;
+        if (!Array.isArray(event['schedule'].rate)) {
+          rate = [rate];
+        }
         return {
           functionName,
-          cron: convertExpressionToCron(event['schedule'].rate),
+          cron: (<string[]>rate).map(r => convertExpressionToCron(r)),
           input: event['schedule'].input || {},
         };
       });
