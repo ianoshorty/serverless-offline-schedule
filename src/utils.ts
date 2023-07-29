@@ -22,6 +22,10 @@ const convertRateToCron = (rate: string): string => {
 };
 
 export const convertExpressionToCron = (scheduleRate: string): string => {
+  if (Array.isArray(scheduleRate) && scheduleRate.length === 1) {
+    scheduleRate = scheduleRate[0];
+  }
+
   if (scheduleRate.startsWith('cron(')) {
     return scheduleRate.replace('cron(', '').replace(')', '');
   }
